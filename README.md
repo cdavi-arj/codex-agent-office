@@ -1,3 +1,67 @@
+<h1 align="center">Codex Agent Office</h1>
+
+<p align="center">
+  A local pixel-art office for seeing Davi's Codex agents as working characters.
+</p>
+
+This repository is Davi's Codex-focused fork of
+[Pixel Agents](https://github.com/pixel-agents-hq/pixel-agents). The upstream
+project provides the animated office, browser server, VS Code extension, layout
+editor, characters, pathfinding, and hook runtime. This fork keeps those
+foundations and adds a local Codex provider so configured Codex agents can appear
+in the office, move out of idle, and show compact work status while they process
+tasks.
+
+## What This Fork Adds
+
+- **Codex provider**: `server/src/providers/hook/codex/` normalizes compact
+  Codex lifecycle events into Pixel Agents runtime events.
+- **Configured roster**: agents in `~/.codex/agents/*.toml` are seeded as idle
+  office characters when the standalone server starts.
+- **Local watcher**: `scripts/codex-agent-watch.mjs` watches Codex session JSONL
+  files and writer locks to infer active local work without sending prompts,
+  responses, diffs, stdout, stderr, secrets, or transcript contents to the game.
+- **Manual bridge**: `scripts/codex-pixel-event.mjs` lets Codex tasks publish
+  explicit compact events such as `SessionStart`, `ToolStart`, and `TurnEnd`.
+- **Codex-first standalone mode**: the CLI runtime uses Codex as the default
+  provider while keeping the upstream Claude provider available in the codebase.
+
+## Quick Start
+
+```bash
+git clone https://github.com/cdavi-arj/codex-agent-office.git
+cd codex-agent-office
+npm install
+npm run build
+node dist/cli.js --host 127.0.0.1 --port 3100
+```
+
+Open the URL printed by the CLI. The token in the URL is local-session
+authorization, so treat it like a secret.
+
+To let the office react to Codex activity outside this chat, run the watcher in a
+separate terminal while the server is running:
+
+```bash
+node scripts/codex-agent-watch.mjs
+```
+
+For more details, see [docs/codex-agent-office.md](docs/codex-agent-office.md).
+
+## Current Limits
+
+- Codex Desktop does not expose a first-class durable hook installer here, so
+  this fork uses a local watcher plus compact event bridge.
+- Agent detection is intentionally privacy-preserving and heuristic. It avoids
+  sending rich content to the UI, which keeps token and data exposure low but can
+  make role inference imperfect.
+- If the local project folder is deleted, the server and watcher must be cloned
+  and started again from the GitHub repository.
+
+---
+
+# Upstream Pixel Agents README
+
 <h1 align="center">
   <a href="https://github.com/pixel-agents-hq/pixel-agents/discussions">
     <img src="webview-ui/public/banner.png" alt="Pixel Agents">

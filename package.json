@@ -1,12 +1,12 @@
 {
-  "name": "pixel-agents",
-  "displayName": "Pixel Agents",
-  "description": "Pixel art office where your Claude Code agents come to life as animated characters",
+  "name": "codex-agent-office",
+  "displayName": "Codex Agent Office",
+  "description": "Pixel art office where Davi's local Codex agents come to life as animated characters",
   "version": "1.4.1",
   "publisher": "pablodelucca",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pixel-agents-hq/pixel-agents"
+    "url": "https://github.com/cdavi-arj/codex-agent-office.git"
   },
   "workspaces": [
     "server",
@@ -160,6 +160,7 @@
     "@fastify/cors": "^11.2.0",
     "@fastify/static": "^10.1.2",
     "@fastify/websocket": "^11.2.0",
+    "@rolldown/binding-darwin-arm64": "^1.2.5",
     "fastify": "^5.8.5"
   },
   "overrides": {

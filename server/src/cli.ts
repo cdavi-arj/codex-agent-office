@@ -27,7 +27,13 @@ import {
 } from './configPersistence.js';
 import { MAX_PORT, MIN_PORT } from './constants.js';
 import { FileStateAdapter } from './fileStateAdapter.js';
-import { claudeProvider, copyHookScript, hookProviderById } from './providers/index.js';
+import { seedCodexAgentRoster } from './providers/hook/codex/codexRoster.js';
+import {
+  claudeProvider,
+  codexProvider,
+  copyHookScript,
+  hookProviderById,
+} from './providers/index.js';
 import { PixelAgentsServer } from './server.js';
 
 // ── Argument parsing ──────────────────────────────────────────
@@ -142,8 +148,15 @@ async function main(): Promise<void> {
   const server = new PixelAgentsServer();
 
   try {
-    // Create runtime first (before server.start, so we can pass it in)
-    const runtime = new AgentRuntime(store, claudeProvider);
+    // Create runtime first (before server.start, so we can pass it in).
+    // Davi's local standalone is Codex-first: real work reaches the game
+    // through compact /api/hooks/codex events instead of simulated status.
+    const runtimeProvider = codexProvider;
+    if (runtimeProvider.id === codexProvider.id) {
+      const seeded = seedCodexAgentRoster(store);
+      console.log(`[Pixel Agents] Codex roster loaded: ${seeded} configured agent(s)`);
+    }
+    const runtime = new AgentRuntime(store, runtimeProvider);
 
     // Wire hook events: HTTP POST -> runtime -> hookEventHandler -> agents
     server.onHookEvent((providerId, event) => {
@@ -243,12 +256,14 @@ async function main(): Promise<void> {
     // Sync runtime refs with persisted settings BEFORE first scan tick. The
     // runtime's single hooksEnabled ref follows the Claude provider until the
     // scanners grow per-provider awareness alongside the Settings UI.
-    runtime.hooksEnabled.current = getHooksEnabled(claudeProvider.id);
-    runtime.watchAllSessions.current = adapter.getSetting('pixel-agents.watchAllSessions', false);
+    runtime.hooksEnabled.current = getHooksEnabled(runtimeProvider.id);
+    runtime.watchAllSessions.current =
+      runtimeProvider.id === codexProvider.id ||
+      adapter.getSetting('pixel-agents.watchAllSessions', false);
 
     // Install hooks on startup if the persisted setting says so — gated on the
     // one-time consent to modify ~/.claude/settings.json.
-    if (runtime.hooksEnabled.current) {
+    if (runtimeProvider.id === claudeProvider.id && runtime.hooksEnabled.current) {
       let consent = getHooksConsent(claudeProvider.id) === 'granted';
       if (!consent && (await claudeProvider.areHooksInstalled())) {
         // Our hooks are already installed and already firing — a pre-consent
@@ -284,7 +299,7 @@ async function main(): Promise<void> {
 
     // Start scanning for external sessions (Claude running in user's terminal)
     const cwd = process.cwd();
-    const dirs = claudeProvider.getSessionDirs?.(cwd);
+    const dirs = runtimeProvider.getSessionDirs?.(cwd);
     if (dirs && dirs[0]) {
       const projectDir = dirs[0];
       console.log(`[Pixel Agents] Scanning project dir: ${projectDir}`);
